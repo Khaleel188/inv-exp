@@ -8,17 +8,12 @@ function parseOrigins(raw: string | undefined): string[] {
   return raw.split(',').map((v) => v.trim()).filter(Boolean);
 }
 
-function resolveRedisUrl(url: string, token?: string): string {
-  const trimmed = token?.trim();
-  if (!trimmed) return url;
-  try {
-    const parsed = new URL(url);
-    if (parsed.password || parsed.username) return url;
-    parsed.password = trimmed;
-    return parsed.toString();
-  } catch {
-    return url;
-  }
+function resolveRedisUrl(): string {
+  return (
+    process.env.REDIS_URL?.trim()
+    || process.env.UPSTASH_REDIS_URL?.trim()
+    || 'redis://localhost:6379/0'
+  );
 }
 
 export function redisLogTarget(url: string): string {
@@ -35,10 +30,7 @@ export function redisLogTarget(url: string): string {
 
 export const config = {
   port: Number(process.env.PORT || 4000),
-  redisUrl: resolveRedisUrl(
-    process.env.REDIS_URL || 'redis://localhost:6379/0',
-    process.env.REDIS_TOKEN,
-  ),
+  redisUrl: resolveRedisUrl(),
   redisChannel: process.env.REDIS_REALTIME_CHANNEL || 'inv:realtime',
   djangoSecret: process.env.DJANGO_SECRET_KEY || 'change-me',
   corsOrigins: parseOrigins(process.env.CORS_ORIGINS),
