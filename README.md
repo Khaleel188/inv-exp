@@ -31,15 +31,18 @@ Default port: **4000**
 REACT_APP_SOCKET_URL=http://localhost:4000
 ```
 
-4. Django publishes events when `REALTIME_ENABLED=true` and `REDIS_URL` is set in `inv-server/.env`.
+4. Django publishes events when `REALTIME_ENABLED=true` and Redis is configured in `inv-server/.env`.
 
-   **Upstash TCP:** paste the connection string from the Upstash console into `REDIS_URL` in both `inv-server/.env` and `inv-exp/.env`:
+   **Upstash (recommended):** use the REST URL and token from the Upstash console in **both** `inv-server/.env` and `inv-exp/.env`:
 
    ```
-   REDIS_URL=rediss://default:YOUR_PASSWORD@YOUR_ENDPOINT.upstash.io:6379
+   UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
+   UPSTASH_REDIS_REST_TOKEN=your-token
    ```
 
-   inv-exp uses [ioredis](https://upstash.com/docs/redis/howto/connectclient) for pub/sub; inv-server uses redis-py over the same URL.
+   inv-exp uses `@upstash/redis`; inv-server uses `upstash-redis`. Same channel on both.
+
+   **Local dev:** `REDIS_URL=redis://localhost:6379/0` (docker Redis in inv-server).
 
 ## Architecture
 

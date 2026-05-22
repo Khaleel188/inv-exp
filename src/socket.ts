@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
-import { config, redisLogTarget } from './config';
-import { createRedisClient } from './redis';
+import { config } from './config';
+import { attachRedisSubscriber } from './redis';
 import { orgRoom, userRoom, verifyAccessToken } from './auth';
 import { RealtimeMessage } from './events';
 
@@ -42,33 +42,25 @@ export function attachSocketServer(httpServer: import('http').Server) {
     });
   });
 
-  const subscriber = createRedisClient(config.redisUrl);
-  subscriber.on('ready', () => {
-    console.log(`[inv-exp] Connected to Redis at ${redisLogTarget(config.redisUrl)}`);
-  });
-  subscriber.subscribe(config.redisChannel, (err) => {
-    if (err) {
-      console.error('[inv-exp] Redis subscribe failed', err);
-      process.exit(1);
-    }
-    console.log(`[inv-exp] Subscribed to Redis channel ${config.redisChannel}`);
-  });
-
-  subscriber.on('message', (_channel, raw) => {
-    let message: RealtimeMessage;
-    try {
-      message = JSON.parse(raw) as RealtimeMessage;
-    } catch {
-      console.warn('[inv-exp] Ignoring invalid Redis payload');
-      return;
-    }
-    if (!message.organization_id || !message.event_type) return;
-    io.to(orgRoom(message.organization_id)).emit('realtime:event', message);
-  });
-
-  subscriber.on('error', (err) => {
-    console.error('[inv-exp] Redis error', err);
-  });
+  const subscriber = attachRedisSubscriber(
+    (raw) => {
+      let message: RealtimeMessage;
+      try {
+        message = JSON.parse(raw) as RealtimeMessage;
+      } catch {
+        console.warn('[inv-exp] Ignoring invalid Redis payload');
+        return;
+      }
+      if (!message.organization_id || !message.event_type) return;
+      io.to(orgRoom(message.organization_id)).emit('realtime:event', message);
+    },
+    (err) => {
+      console.error('[inv-exp] Redis error', err);
+      if (config.redis.mode === 'tcp') {
+        process.exit(1);
+      }
+    },
+  );
 
   return { io, subscriber };
 }
