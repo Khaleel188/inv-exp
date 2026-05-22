@@ -8,9 +8,37 @@ function parseOrigins(raw: string | undefined): string[] {
   return raw.split(',').map((v) => v.trim()).filter(Boolean);
 }
 
+function resolveRedisUrl(url: string, token?: string): string {
+  const trimmed = token?.trim();
+  if (!trimmed) return url;
+  try {
+    const parsed = new URL(url);
+    if (parsed.password || parsed.username) return url;
+    parsed.password = trimmed;
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+export function redisLogTarget(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname || 'localhost';
+    const port = parsed.port || '6379';
+    const db = parsed.pathname.replace(/^\//, '') || '0';
+    return `${parsed.protocol}//${host}:${port}/${db}`;
+  } catch {
+    return url;
+  }
+}
+
 export const config = {
   port: Number(process.env.PORT || 4000),
-  redisUrl: process.env.REDIS_URL || 'redis://localhost:6379/0',
+  redisUrl: resolveRedisUrl(
+    process.env.REDIS_URL || 'redis://localhost:6379/0',
+    process.env.REDIS_TOKEN,
+  ),
   redisChannel: process.env.REDIS_REALTIME_CHANNEL || 'inv:realtime',
   djangoSecret: process.env.DJANGO_SECRET_KEY || 'change-me',
   corsOrigins: parseOrigins(process.env.CORS_ORIGINS),

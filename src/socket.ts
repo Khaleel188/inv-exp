@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import Redis from 'ioredis';
-import { config } from './config';
+import { config, redisLogTarget } from './config';
 import { orgRoom, userRoom, verifyAccessToken } from './auth';
 import { RealtimeMessage } from './events';
 
@@ -43,6 +43,9 @@ export function attachSocketServer(httpServer: import('http').Server) {
   });
 
   const subscriber = new Redis(config.redisUrl);
+  subscriber.on('ready', () => {
+    console.log(`[inv-exp] Connected to Redis at ${redisLogTarget(config.redisUrl)}`);
+  });
   subscriber.subscribe(config.redisChannel, (err) => {
     if (err) {
       console.error('[inv-exp] Redis subscribe failed', err);
