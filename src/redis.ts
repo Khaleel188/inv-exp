@@ -6,6 +6,28 @@ export type RedisSubscriberHandle = {
   close: () => void | Promise<void>;
 };
 
+function createUpstashRestClient(): UpstashRedis {
+  const { redis } = config;
+  if (redis.mode !== 'rest') {
+    throw new Error('Upstash REST client requested but Redis is not in REST mode');
+  }
+
+  const fromStandardEnv =
+    !process.env.REDIS_URL?.startsWith('https://')
+    && !process.env.REDIS_TOKEN
+    && (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL)
+    && (process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN);
+
+  if (fromStandardEnv) {
+    return UpstashRedis.fromEnv();
+  }
+
+  return new UpstashRedis({
+    url: redis.url,
+    token: redis.token,
+  });
+}
+
 /**
  * Upstash TCP uses password-only AUTH — not ACL username "default".
  * @see https://upstash.com/docs/redis/howto/connectclient
@@ -53,10 +75,7 @@ export function attachRedisSubscriber(
   const { redis } = config;
 
   if (redis.mode === 'rest') {
-    const client = new UpstashRedis({
-      url: redis.url,
-      token: redis.token,
-    });
+    const client = createUpstashRestClient();
 
     const subscription = client.subscribe<string>([redis.channel]);
 

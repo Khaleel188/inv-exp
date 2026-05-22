@@ -44,6 +44,19 @@ REACT_APP_SOCKET_URL=http://localhost:4000
 
    **Local dev:** `REDIS_URL=redis://localhost:6379/0` (docker Redis in inv-server).
 
+## Render deployment
+
+Set these environment variables on the Render service (Upstash console → **REST API**):
+
+```
+UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-token
+DJANGO_SECRET_KEY=same-as-inv-server
+CORS_ORIGINS=https://your-frontend.onrender.com
+```
+
+Do **not** use `redis://localhost:6379` on Render — there is no local Redis. The app fails fast at startup if Upstash is missing in production.
+
 ## Architecture
 
 ```
